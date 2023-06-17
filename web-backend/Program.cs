@@ -1,7 +1,8 @@
 
 
+using Microsoft.AspNetCore.Http;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using System;
 
 namespace web_backend
 {
@@ -65,6 +66,14 @@ namespace web_backend
             })
             .WithName("GetWeatherForecast")
             .WithOpenApi();
+
+
+            app.MapPost("/TemperatureData", (Item item) =>
+            {
+                var docs = Db.Client.GetDatabase("test").GetCollection<BsonDocument>("test");
+                docs.InsertOne(item.ToBsonDocument());
+            });
+
 
             app.MapHub<Realtime>("/test");
 

@@ -1,14 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Runtime.Serialization;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Bson.Serialization;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.SignalR;
+using MongoDB.Bson;
 using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace web_backend
 {
@@ -62,32 +59,37 @@ namespace web_backend
     new BsonDocument("hi",
     new BsonDocument("$exists", true)))
 };
-            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<BsonDocument>>().Match("{ operationType: { $in: [ 'insert'] } }");
-            var docs = Db.Client.GetDatabase("test").GetCollection<BsonDocument>("test").Watch(pipeline, cancellationToken: cancellationToken); //.Watch();
+            var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<Item>>().Match("{ operationType: { $in: [ 'insert'] } }");
+            var docs = Db.Client.GetDatabase("test").GetCollection<Item>("test").Watch(pipeline, cancellationToken: cancellationToken); //.Watch();
 
             var enumerator = docs.ToEnumerable(cancellationToken: cancellationToken).GetEnumerator();
             while (enumerator.MoveNext())
             {
-                ChangeStreamDocument<BsonDocument> doc = enumerator.Current;
+                ChangeStreamDocument<Item> doc = enumerator.Current;
                 // Do something here with your document
-                
+
                 Console.WriteLine(doc.DocumentKey);
-                //var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.CanonicalExtendedJson };
-                yield return doc.FullDocument.ToJson();
+                var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict };
+                yield return doc.FullDocument.ToJson(jsonWritersetting);
             }
         }
 
 
     }
 
+
+    [BsonIgnoreExtraElements]
     public class Item
     {
+        [JsonIgnore]
+        [BsonIgnore]
         [BsonId]
         public MongoDB.Bson.ObjectId _id { get; set; }
-        [BsonElement("id")]
-        public int Id { get; set; }
         [BsonElement("hi")]
-        public string Hi { get; set; }
+        public int Hi { get; set; }
+        [BsonElement("date")]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime Date { get; set; }
 
 #if false
         [BsonConstructor]
