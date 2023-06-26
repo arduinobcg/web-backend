@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
@@ -11,27 +10,13 @@ namespace web_backend
 {
     public class Realtime : Hub
     {
-        public async Task test()
-        {
-            var i = 0;
-            while (true)
-            {
-                Console.WriteLine("hi");
-                await Clients.All.SendAsync("hi", $"hello {i}");
-                i++;
-                await Task.Delay(1000);
-            }
-        }
-
-
-
         public async IAsyncEnumerable<int> Counter(
     int count,
     int delay,
     [EnumeratorCancellation]
         CancellationToken cancellationToken)
         {
-            for (var i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 // Check the cancellation token regularly so that the server will stop
                 // producing items if the client disconnects.
@@ -45,31 +30,30 @@ namespace web_backend
             }
         }
 
-
-
-        public async IAsyncEnumerable<string> database(
-[EnumeratorCancellation]
+        public async IAsyncEnumerable<string> Database(
+        [EnumeratorCancellation]
         CancellationToken cancellationToken)
         {
             // Check the cancellation token regularly so that the server will stop
             // producing items if the client disconnects.
-            var a = new BsonArray
-{
-    new BsonDocument("$match",
-    new BsonDocument("hi",
-    new BsonDocument("$exists", true)))
-};
+            //             var a = new BsonArray
+            // {
+            //     new BsonDocument("$match",
+            //     new BsonDocument("hi",
+            //     new BsonDocument("$exists", true)))
+            // };
             var pipeline = new EmptyPipelineDefinition<ChangeStreamDocument<Item>>().Match("{ operationType: { $in: [ 'insert'] } }");
-            var docs = Db.Client.GetDatabase("test").GetCollection<Item>("test").Watch(pipeline, cancellationToken: cancellationToken); //.Watch();
+            var docs = await Db.Client.GetDatabase("test").GetCollection<Item>("test").WatchAsync(pipeline, cancellationToken: cancellationToken); //.Watch();
 
-            var enumerator = docs.ToEnumerable(cancellationToken: cancellationToken).GetEnumerator();
+            using var enumerator = docs.ToEnumerable(cancellationToken: cancellationToken).GetEnumerator() ;
             while (enumerator.MoveNext())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 ChangeStreamDocument<Item> doc = enumerator.Current;
                 // Do something here with your document
 
                 Console.WriteLine(doc.DocumentKey);
-                var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict };
+                var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.RelaxedExtendedJson };
                 yield return doc.FullDocument.ToJson(jsonWritersetting);
             }
         }
@@ -84,7 +68,7 @@ namespace web_backend
         [JsonIgnore]
         [BsonIgnore]
         [BsonId]
-        public MongoDB.Bson.ObjectId _id { get; set; }
+        public ObjectId Id { get; set; }
         [BsonElement("hi")]
         public int Hi { get; set; }
         [BsonElement("date")]
@@ -96,7 +80,7 @@ namespace web_backend
         public Item(string hi)
         {
             Hi = hi;
-        } 
+        }
 #endif
     }
 
