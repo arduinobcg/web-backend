@@ -4,10 +4,12 @@
       "commandName": "Project",
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5043"
+      "applicationUrl": "http://localhost:5043",
+      "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true"
     },
     "https": {
       "commandName": "Project",

@@ -14,22 +14,20 @@ namespace web_backend
     }
 
 #if true
-    public class Db
+    public static class Db
     {
-        public static string ConnectionString => "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true";
+        private static string? connectionString => Environment.GetEnvironmentVariable("MONGODB_URI");
         public static MongoClient Client
         {
             get
             {
-
-                //var connectionString = Environment.GetEnvironmentVariable("MONGODB_URI");
-                if (ConnectionString == null)
+                if (connectionString is null)
                 {
                     Console.WriteLine("You must set your 'MONGODB_URI' environmental variable. See\n\t https://www.mongodb.com/docs/drivers/go/current/usage-examples/#environment-variable");
                     Environment.Exit(0);
                 }
 
-                var client = new MongoClient(ConnectionString);
+                var client = new MongoClient(connectionString);
                 return client;
             }
         }
