@@ -1,6 +1,10 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 namespace web_backend
 {
     public class Program
@@ -9,8 +13,51 @@ namespace web_backend
         {
             var builder = WebApplication.CreateBuilder(args);
 
+
+            List<X509SecurityKey> issuerSigningKeys = FirebaseAuthConfig.GetIssuerSigningKeys();
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            {
+                //options.Authority = "https://securetoken.google.com/iswork-d8ed0";
+                //options.Audience = "iswork-d8ed0";
+                options.TokenValidationParameters = new TokenValidationParameters
+
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = "https://securetoken.google.com/arduinobcg",
+                    ValidateAudience = true,
+                    ValidAudience = "arduinobcg",
+                    ValidateLifetime = true,
+                    IssuerSigningKeys = issuerSigningKeys,
+                    IssuerSigningKeyResolver = (arbitrarily, declaring, these, parameters) => issuerSigningKeys
+                };
+
+            });
+
             // Add services to the container.
-            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Admin", policy => policy.RequireClaim("Admin", "true"));
+            });
+
+            FirebaseApp firebaseApp = FirebaseApp.Create(new AppOptions()
+            {
+                Credential = GoogleCredential.FromFile("./arduinobcg-firebase-adminsdk-pk1xy-49a00f4fe8.json"),
+            });
+
+            var claims = new Dictionary<string, object>()
+            {
+                { "admin", true },
+            };
+
+            String uid = "IH2mF4O1BkZBqXKOfu2b1z9Anro1"; // bookshorse was here
+            FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(uid, claims).Wait();
+
+            #if true
+            string customToken = FirebaseAuth.DefaultInstance.CreateCustomTokenAsync(uid).Result;
+            // Send token back to client
+            Console.WriteLine($"TestToken: {customToken}");
+            #endif
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -43,6 +90,7 @@ namespace web_backend
                 cm.AutoMap();
             });
             app.UseCors();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             var summaries = new[]

@@ -24,7 +24,7 @@ namespace web_backend
                 if (connectionString is null)
                 {
                     Console.WriteLine("You must set your 'MONGODB_URI' environmental variable. See\n\t https://www.mongodb.com/docs/drivers/go/current/usage-examples/#environment-variable");
-                    Environment.Exit(0);
+                    Environment.Exit(-1);
                 }
 
                 var client = new MongoClient(connectionString);
