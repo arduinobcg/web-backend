@@ -5,11 +5,15 @@
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true"
+        "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true",
+        "RABBIT_URI": "amqp://user:password@127.0.0.1:5672/%2f",
+        "RABBIT_EXCHANGE": "amq.topic"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5043",
-      "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true"
+      "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true",
+      "RABBIT_URI": "amqp://user:password@127.0.0.1:5672/%2f",
+      "RABBIT_EXCHANGE": "amq.topic"
     },
     "https": {
       "commandName": "Project",

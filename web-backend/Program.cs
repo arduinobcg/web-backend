@@ -73,8 +73,7 @@ namespace web_backend
 
 
             app.MapHub<Realtime>("/test");
-
-
+            Task.Run(Rabbit.Rabbit_init);
             app.Run();
         }
     }
