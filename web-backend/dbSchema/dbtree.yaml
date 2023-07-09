@@ -1,0 +1,15 @@
+﻿arduinoBCG:
+  device:
+    _id: objectid
+    displayname: hi
+    queuename: dsaffas.devicenamesanitized
+    owner: 789
+    user: array
+  timeline{timeseries,date:data,meta:meta}:
+    deviceid: objectid from device
+    date: date
+    data: object
+  user:
+    _id: objectid
+    userid: string
+    devices: [array]

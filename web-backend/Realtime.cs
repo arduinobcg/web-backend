@@ -1,15 +1,32 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using RabbitMQ.Client;
+using System.Security.Claims;
+using RabbitMQ.Client.Events;
+using System.Text;
+using System.Threading.Channels;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Mvc;
 
 namespace web_backend
 {
     public class Realtime : Hub
     {
+        // private readonly Rabbit _rabbit;
+        //
+        public Realtime(ILogger<Rabbit> logger)
+        {
+            _logger = logger;
+        }
+
+        private readonly ILogger<Rabbit> _logger;
+
         public async IAsyncEnumerable<int> Counter(
     int count,
     int delay,
@@ -56,13 +73,83 @@ namespace web_backend
                 var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.RelaxedExtendedJson };
                 yield return doc.FullDocument.ToJson(jsonWritersetting);
             }
+
+
+
+        }
+
+        public async Task NewMessage() {
+            Console.WriteLine(Context.User.FindFirstValue("user_id"));
+            var userid = Context.User.FindFirstValue("user_id");
+            await Clients.Client(Context.ConnectionId).SendAsync("messageReceived", Context.User.FindFirstValue("user_id"));
         }
 
 
+
+        [Authorize]
+        public ChannelReader<RabbitHostedService.rabbitMsg> LiveRabbit(
+            [EnumeratorCancellation] CancellationToken cancellationToken,[FromServices]Rabbit rabbit)
+        {
+            var dev= Db.Client.GetDatabase("arduinoBCG").GetCollection<Device>("device").AsQueryable();
+            var userid = Context.User.FindFirstValue("user_id");
+
+
+            var msgchannel = Channel.CreateUnbounded<RabbitHostedService.rabbitMsg>();
+            _ = msgchannel.Writer.WriteAsync(
+                new RabbitHostedService.rabbitMsg() { queueName = "hi", message = "h" }, cancellationToken);
+            if (rabbit.Consumer is null)
+            {
+                Console.WriteLine("rabbit is null");
+            }
+                EventHandler<BasicDeliverEventArgs> handler = null;
+                handler= (model, ea) =>
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        rabbit.Consumer.Received -= handler;
+                    }
+                byte[] body = ea.Body.ToArray();
+                string message = Encoding.UTF8.GetString(body);
+                string routingKey = ea.RoutingKey;
+                Console.WriteLine($" x[x] Received '{routingKey}':'{message}'");
+                //a.Add(new msg(){model=model,ea=ea});
+                var d = dev.Where(x => x.QueueName == routingKey && x.Owner == userid);
+                Console.WriteLine($"hi {d.ToList()[0]}");
+
+                if (d.ToList().Count == 1)
+                {
+                    _ = msgchannel.Writer.WriteAsync(
+                        new RabbitHostedService.rabbitMsg() { queueName = routingKey, message = message }, cancellationToken);
+                }
+                // yield return Encoding.UTF8.GetString(body);
+            };
+                rabbit.Consumer.Received += handler;
+            return msgchannel.Reader;
+            // while (true)
+            // {
+            //
+            // } // prevent task from exiting
+        }
+
+
+        }
+
+
+public class msg
+{
+    public object? model
+    {
+        get;
+        set;
     }
+    public BasicDeliverEventArgs ea
+    {
+        get;
+        set;
+    }
+}
 
-
-    [BsonIgnoreExtraElements]
+[BsonIgnoreExtraElements]
     public class Item
     {
         [JsonIgnore]
@@ -86,4 +173,3 @@ namespace web_backend
 
 
 }
-

@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace web_backend
 {
-    public class FirebaseAuthConfig
+    public static class FirebaseAuthConfig
     {
         public static List<X509SecurityKey> GetIssuerSigningKeys()
         {

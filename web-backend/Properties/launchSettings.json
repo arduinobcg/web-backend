@@ -5,13 +5,13 @@
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true",
+        "MONGODB_URI": "mongodb://localhost:27017/?replicaSet=rs0&directConnection=true",
         "RABBIT_URI": "amqp://user:password@127.0.0.1:5672/%2f",
         "RABBIT_EXCHANGE": "amq.topic"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5043",
-      "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true",
+      "MONGODB_URI": "mongodb://localhost:27017/?replicaSet=rs0&directConnection=true",
       "RABBIT_URI": "amqp://user:password@127.0.0.1:5672/%2f",
       "RABBIT_EXCHANGE": "amq.topic"
     },
@@ -20,7 +20,10 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MONGODB_URI": "mongodb://10.0.0.7:27017/?replicaSet=rs0&directConnection=true",
+        "RABBIT_URI": "amqp://user:password@127.0.0.1:5672/%2f",
+        "RABBIT_EXCHANGE": "amq.topic"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7291;http://localhost:5043"
