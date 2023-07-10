@@ -152,7 +152,8 @@ namespace web_backend
 
             app.MapPost("/AddDevice",Webapi.AddDevice).WithOpenApi();
             app.MapGet("/GetDevice",Webapi.GetDevice).WithOpenApi();
-            app.MapDelete("/DeleteDevice/{guid}",Webapi.DeleteDevice).WithOpenApi();
+            app.MapGet("/GetDeviceHistory",Webapi.GetDeviceHistory).WithOpenApi();
+            app.MapDelete("/DeleteDevice",Webapi.DeleteDevice).WithOpenApi();
             app.MapHub<Realtime>("/test");
 
             // Task.Run(Rabbit.Rabbit_init);

@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
@@ -12,6 +13,9 @@ using Microsoft.Extensions.Identity.Core;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MongoDB.Bson.Serialization;
 
 namespace web_backend
 {
@@ -75,7 +79,7 @@ namespace web_backend
             return owneddevice.ToList().Select(doc => new DeviceResponse() {Name = doc.Name,QueueName = doc.QueueName,Icon=doc.Icon,Guid=doc.Guid}).ToList();
         }
 
-        public static async Task<DeleteResult> DeleteDevice(HttpRequest req,Guid guid,[FromServices]ILogger<Webapi> logger, [FromServices]Rabbit rabbit)
+        public static async Task<DeleteResult> DeleteDevice(HttpRequest req,[FromQuery]Guid guid,[FromServices]ILogger<Webapi> logger, [FromServices]Rabbit rabbit)
         {
             var user = req.HttpContext.User.FindFirstValue("user_id");
 
@@ -90,6 +94,32 @@ namespace web_backend
 
             return await database.GetCollection<Device>("device").DeleteOneAsync(Builders<Device>.Filter.And(
                 Builders<Device>.Filter.Eq(x => x.Guid,guid),Builders<Device>.Filter.Eq(x => x.Owner,user)));
+        }
+
+        public static async Task<Results<Ok<JsonObject>,NotFound,NoContent>> GetDeviceHistory(HttpRequest req,
+            [FromQuery] string QueueName, [FromServices] ILogger<Webapi> logger)
+        {
+            var user = req.HttpContext.User.FindFirstValue("user_id");
+            var isOwned = Db.Client.GetDatabase("arduinoBCG").GetCollection<Device>("device").AsQueryable()
+                .Where(x => x.Owner == user && x.QueueName == QueueName).Count();
+            if (isOwned == 1)
+            {
+                var data = Db.Client.GetDatabase("arduinoBCG").GetCollection<Rabbit.DeviceTimeline>("timeline")
+                    .AsQueryable()
+                    .Where(x => x.QueueName == QueueName)
+                    .Where(x => x.Date > DateTime.Now.Subtract(TimeSpan.FromDays(30)));
+
+                if (data.ToList().Count() == 0)
+                {
+                    return TypedResults.NoContent();
+                }
+                var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.RelaxedExtendedJson};
+                var f = new JsonObject();
+                f.Add("data", JsonSerializer.Deserialize<JsonNode>(data.ToList().ToJson(jsonWritersetting)));
+                return TypedResults.Ok(f);
+            }
+
+            return TypedResults.NotFound();
         }
     }
 

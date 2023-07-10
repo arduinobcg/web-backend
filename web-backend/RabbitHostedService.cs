@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Nodes;
 using MongoDB.Driver;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -129,7 +130,7 @@ namespace web_backend
         public class rabbitMsg
         {
             public string queueName { get; set; }
-            public string message { get; set; }
+            public JsonNode message { get; set; }
         }
     }
 }

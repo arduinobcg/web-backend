@@ -13,6 +13,8 @@ using System.Text;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace web_backend
 {
@@ -95,8 +97,8 @@ namespace web_backend
 
 
             var msgchannel = Channel.CreateUnbounded<RabbitHostedService.rabbitMsg>();
-            _ = msgchannel.Writer.WriteAsync(
-                new RabbitHostedService.rabbitMsg() { queueName = "hi", message = "h" }, cancellationToken);
+            // _ = msgchannel.Writer.WriteAsync(
+            //     new RabbitHostedService.rabbitMsg() { queueName = "hi", message = "h" }, cancellationToken);
             if (rabbit.Consumer is null)
             {
                 Console.WriteLine("rabbit is null");
@@ -111,7 +113,25 @@ namespace web_backend
                 byte[] body = ea.Body.ToArray();
                 string message = Encoding.UTF8.GetString(body);
                 string routingKey = ea.RoutingKey;
-                Console.WriteLine($" x[x] Received '{routingKey}':'{message}'");
+                bool isException = false;
+                try
+                {
+                    JsonSerializer.Deserialize<JsonNode>(message);
+                    _logger.LogInformation($" x[x] Received '{routingKey}':'{message}'",args:JsonSerializer.Deserialize<JsonNode>(message));
+                }
+                catch (JsonException e)
+                {
+                    isException = true;
+                    _logger.LogWarning($" x[x] Received invalid json '{routingKey}':'{message}'");
+                    var f = new JsonObject();
+                        f.Add("Error", e.Message);
+                        f.Add("Path",e.Path);
+                        f.Add("LineNumber",e.LineNumber);
+                    message = f.ToString();
+                }
+
+
+                // Console.WriteLine($" x[x] Received '{routingKey}':'{message}'");
                 //a.Add(new msg(){model=model,ea=ea});
                 var d = dev.Where(x => x.QueueName == routingKey && x.Owner == userid);
                 Console.WriteLine($"hi {d.ToList()[0]}");
@@ -119,7 +139,7 @@ namespace web_backend
                 if (d.ToList().Count == 1)
                 {
                     _ = msgchannel.Writer.WriteAsync(
-                        new RabbitHostedService.rabbitMsg() { queueName = routingKey, message = message }, cancellationToken);
+                        new RabbitHostedService.rabbitMsg() { queueName = routingKey, message = JsonSerializer.Deserialize<JsonNode>(message) }, cancellationToken);
                 }
                 // yield return Encoding.UTF8.GetString(body);
             };

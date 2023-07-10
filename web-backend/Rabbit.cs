@@ -1,8 +1,17 @@
 ﻿using System.Text;
+using System.Text.Json.Nodes;
 using MongoDB.Driver;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Microsoft.AspNetCore.SignalR;
+using MongoDB.Bson;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace web_backend
 {
@@ -15,6 +24,7 @@ namespace web_backend
         public EventingBasicConsumer Consumer { get; set; }
         public IConnection Connection { get; set; }
         public IModel Channel { get; set; }
+        public EventHandler<BasicDeliverEventArgs> Handler { get; set; }
         public Rabbit(IHubContext<Realtime> hubContext,ILogger<RabbitHostedService> logger)
         {
             _hubContext = hubContext;
@@ -80,27 +90,62 @@ namespace web_backend
                                 exchange: "amq.topic",
                                 routingKey: bindingKey);
                         }
-
-                        //Consumer = new EventingBasicConsumer(Channel);
-                        EventHandler<BasicDeliverEventArgs> handler = null;
-                        handler = (model, ea) =>
-                        {
-                            if (canceltoken.IsCancellationRequested)
-                            {
-                                Consumer.Received -= handler;
-                            }
-                            byte[] body = ea.Body.ToArray();
-                            string message = Encoding.UTF8.GetString(body);
-                            string routingKey = ea.RoutingKey;
-                            //Console.WriteLine($" [x] Received '{routingKey}':'{message}'");
-                            _logger.LogInformation(69,message:$" [x] Received '{routingKey}':'{message}'");
-                            var realtime = _hubContext.Clients.All.SendAsync("hi",new rabbitMsg() {queueName = routingKey,message=message});
-                        };
-                        Consumer.Received += handler;
                         Channel.BasicConsume(queue: queueName,
                             autoAck: true,
                             consumer: Consumer);
                     }
+                    //Consumer = new EventingBasicConsumer(Channel);
+                    EventHandler<BasicDeliverEventArgs> handler = null;
+                    Handler = (model, ea) =>
+                    {
+                        if (canceltoken.IsCancellationRequested)
+                        {
+                            Consumer.Received -= handler;
+                        }
+                        byte[] body = ea.Body.ToArray();
+                        string message = Encoding.UTF8.GetString(body);
+                        string routingKey = ea.RoutingKey;
+                        bool isException = false;
+                        try
+                        {
+                            JsonSerializer.Deserialize<JsonNode>(message);
+                        _logger.LogInformation($" [x] Received '{routingKey}':'{message}'",args:JsonSerializer.Deserialize<JsonNode>(message));
+                        }
+                        catch (JsonException e)
+                        {
+                            isException = true;
+                            _logger.LogWarning($" [x] Received invalid json '{routingKey}':'{message}'");
+                            var f = new JsonObject();
+                            f.Add("Error", e.Message);
+                            f.Add("Path",e.Path);
+                            f.Add("LineNumber",e.LineNumber);
+                            message = f.ToString();
+                        }
+
+                        //_ = _hubContext.Clients.All.SendAsync("hi",new rabbitMsg() {QueueName = routingKey,Message=message});
+                        if (!isException)
+                        {
+                            var d = Db.Client.GetDatabase("arduinoBCG").GetCollection<DeviceTimeline>("timeline")
+                                .InsertOneAsync(
+
+                                    new DeviceTimeline()
+                                    {
+                                        QueueName = routingKey,
+                                        Data = BsonSerializer.Deserialize<BsonDocument>(message)
+                                    }
+
+                        //     // new Device()
+                        //     // {
+                        //     //
+                        //     // }
+                        );
+                        // Console.WriteLine("hi");\
+                        Task.Run(() => d);
+                        }
+
+                    };
+                    Consumer.Received += Handler;
+
                     //channel.ExchangeDeclare(exchange:exchange, type: ExchangeType.Topic,durable:true);
 
                     // string queueName = channel.QueueDeclare("hi",autoDelete:true,exclusive:false).QueueName;
@@ -147,8 +192,24 @@ namespace web_backend
             // }
                     public class rabbitMsg
                     {
-                        public string queueName { get; set; }
-                        public string message { get; set; }
+                        public string QueueName { get; set; }
+                        public string Message { get; set; }
+                    }
+
+                    public class DeviceTimeline
+                    {
+                        [BsonId]
+                        [JsonIgnore]
+                        [BsonElement("_id")]
+                        public ObjectId Id { get; set; }
+                        [BsonElement("date")]
+                        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+                        public DateTime Date => DateTime.Now;
+                        [BsonElement("queueName")]
+                        public string QueueName { get; set; }
+                        [BsonElement("data")]
+                        public BsonDocument Data { get; set; }
+
                     }
 
     }
