@@ -131,7 +131,8 @@ namespace web_backend
                                     new DeviceTimeline()
                                     {
                                         QueueName = routingKey,
-                                        Data = BsonSerializer.Deserialize<BsonDocument>(message)
+                                        Data = BsonSerializer.Deserialize<BsonDocument>(message),
+                                        Date = DateTime.Now
                                     }
 
                         //     // new Device()
@@ -204,7 +205,7 @@ namespace web_backend
                         public ObjectId Id { get; set; }
                         [BsonElement("date")]
                         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-                        public DateTime Date => DateTime.Now;
+                        public DateTime Date { get; set; }
                         [BsonElement("queueName")]
                         public string QueueName { get; set; }
                         [BsonElement("data")]

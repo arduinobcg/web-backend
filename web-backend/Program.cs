@@ -151,8 +151,10 @@ namespace web_backend
 
 
             app.MapPost("/AddDevice",Webapi.AddDevice).WithOpenApi();
+            app.MapPost("/SendMessage",Webapi.SendMessage).WithOpenApi();
             app.MapGet("/GetDevice",Webapi.GetDevice).WithOpenApi();
             app.MapGet("/GetDeviceHistory",Webapi.GetDeviceHistory).WithOpenApi();
+
             app.MapDelete("/DeleteDevice",Webapi.DeleteDevice).WithOpenApi();
             app.MapHub<Realtime>("/test");
 

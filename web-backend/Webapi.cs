@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using MongoDB.Bson.Serialization;
+using System.Text;
 
 namespace web_backend
 {
@@ -78,7 +79,7 @@ namespace web_backend
             var owneddevice = await database.GetCollection<Device>("device").AggregateAsync<Device>(pipelineStage1);
             return owneddevice.ToList().Select(doc => new DeviceResponse() {Name = doc.Name,QueueName = doc.QueueName,Icon=doc.Icon,Guid=doc.Guid}).ToList();
         }
-
+[Authorize]
         public static async Task<DeleteResult> DeleteDevice(HttpRequest req,[FromQuery]Guid guid,[FromServices]ILogger<Webapi> logger, [FromServices]Rabbit rabbit)
         {
             var user = req.HttpContext.User.FindFirstValue("user_id");
@@ -96,6 +97,7 @@ namespace web_backend
                 Builders<Device>.Filter.Eq(x => x.Guid,guid),Builders<Device>.Filter.Eq(x => x.Owner,user)));
         }
 
+        [Authorize]
         public static async Task<Results<Ok<JsonObject>,NotFound,NoContent>> GetDeviceHistory(HttpRequest req,
             [FromQuery] string QueueName, [FromServices] ILogger<Webapi> logger)
         {
@@ -107,12 +109,12 @@ namespace web_backend
                 var data = Db.Client.GetDatabase("arduinoBCG").GetCollection<Rabbit.DeviceTimeline>("timeline")
                     .AsQueryable()
                     .Where(x => x.QueueName == QueueName)
-                    .Where(x => x.Date > DateTime.Now.Subtract(TimeSpan.FromDays(30)));
+                    .Where(x => x.Date > DateTime.Now.AddDays(-30));
 
-                if (data.ToList().Count() == 0)
-                {
-                    return TypedResults.NoContent();
-                }
+                // if (data.ToList().Count() == 0)
+                // {
+                //     return TypedResults.NoContent();
+                // }
                 var jsonWritersetting = new JsonWriterSettings { OutputMode = JsonOutputMode.RelaxedExtendedJson};
                 var f = new JsonObject();
                 f.Add("data", JsonSerializer.Deserialize<JsonNode>(data.ToList().ToJson(jsonWritersetting)));
@@ -121,6 +123,27 @@ namespace web_backend
 
             return TypedResults.NotFound();
         }
+[Authorize]
+        public static async Task<Results<Ok<string>, NotFound>> SendMessage(HttpRequest req,
+            [FromQuery] string QueueName, [FromServices] ILogger<Webapi> logger, [FromServices] Rabbit rabbit,[FromBody] string message)
+        {
+            var user = req.HttpContext.User.FindFirstValue("user_id");
+
+            var body = Encoding.UTF8.GetBytes(message);
+
+            var isOwned = Db.Client.GetDatabase("arduinoBCG").GetCollection<Device>("device").AsQueryable()
+                .Where(x => x.Owner == user && x.QueueName == QueueName).Count();
+            if (isOwned == 1)
+            {
+
+                rabbit.Channel.BasicPublish(exchange:"amq.topic",routingKey:QueueName,basicProperties:null,body:body,mandatory:false);
+                return TypedResults.Ok("Message Sent");
+            }
+
+            return TypedResults.NotFound();
+
+        }
+
     }
 
     public class DeviceAddRequest

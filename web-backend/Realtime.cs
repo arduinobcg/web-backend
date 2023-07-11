@@ -127,16 +127,16 @@ namespace web_backend
                         f.Add("Error", e.Message);
                         f.Add("Path",e.Path);
                         f.Add("LineNumber",e.LineNumber);
-                    message = f.ToString();
+                    //message = f.ToString();
                 }
 
 
                 // Console.WriteLine($" x[x] Received '{routingKey}':'{message}'");
                 //a.Add(new msg(){model=model,ea=ea});
                 var d = dev.Where(x => x.QueueName == routingKey && x.Owner == userid);
-                Console.WriteLine($"hi {d.ToList()[0]}");
+                // Console.WriteLine($"hi {d.ToList()[0]}");
 
-                if (d.ToList().Count == 1)
+                if (d.ToList().Count == 1 && isException == false)
                 {
                     _ = msgchannel.Writer.WriteAsync(
                         new RabbitHostedService.rabbitMsg() { queueName = routingKey, message = JsonSerializer.Deserialize<JsonNode>(message) }, cancellationToken);
