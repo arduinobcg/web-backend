@@ -94,7 +94,6 @@ namespace web_backend
             builder.Services.AddAuthentication();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddSignalR(f => { f.EnableDetailedErrors = true; });
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(
@@ -105,6 +104,8 @@ namespace web_backend
                         policy.AllowAnyHeader();
                     });
             });
+            builder.Services.AddSignalR(f => { f.EnableDetailedErrors = true; });
+
 
             var f = builder.Services.AddSingleton<Rabbit>();
             builder.Services.AddSingleton<RabbitHostedService>();
