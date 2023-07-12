@@ -100,7 +100,7 @@ namespace web_backend
                 options.AddDefaultPolicy(
                     policy =>
                     {
-                        policy.AllowAnyOrigin();
+                        policy.WithOrigins("https://bcg.sencha.moe", "https://bcgapi.sencha.moe");
                         policy.AllowAnyMethod();
                         policy.AllowAnyHeader();
                     });
