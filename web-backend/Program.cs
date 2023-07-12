@@ -102,6 +102,7 @@ namespace web_backend
                     {
                         policy.AllowAnyOrigin();
                         policy.AllowAnyMethod();
+                        policy.AllowAnyHeader();
                     });
             });
 
