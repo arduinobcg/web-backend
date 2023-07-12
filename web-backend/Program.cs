@@ -102,6 +102,7 @@ namespace web_backend
                         policy.WithOrigins("https://bcg.sencha.moe", "https://bcgapi.sencha.moe");
                         policy.AllowAnyMethod();
                         policy.AllowAnyHeader();
+                        policy.AllowCredentials();
                     });
             });
             builder.Services.AddSignalR(f => { f.EnableDetailedErrors = true; });
